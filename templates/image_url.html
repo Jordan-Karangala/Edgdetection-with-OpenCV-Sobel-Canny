@@ -98,15 +98,29 @@
     </div>
     <!-- Upload Container -->
     <div class="upload-container">
-        <h2 class="mb-4">Enter YouTube Video URL</h2>
+        <h2 class="mb-4">Enter Image URL</h2>
+        
         <form id="fileUploadForm" class="form-group mt-3" method="POST" action="">
-            <div id="urlInputContainer" class="form-group">
-                <label for="imageURL">Image URL</label>
+            <div class="row">
+                <div id="urlInputContainer" class="form-group col-md-6" style="width: 526px;">
                     {{ form.hidden_tag() }}
                     {% from 'bootstrap4/form.html' import render_form_row %}
                     {{ render_form_row(form) }}
-                
+                </div>
+        
+                <div id="urlSampleContainer" class="form-group col-md-6">
+                    <ol>
+                        <h6 class="mb-4">Copy paste any one url given below by replacing the numbers at the end not less than 200</h6>
+                        <ol>
+                            <h6>https://picsum.photos/200</h6>
+                        </ol>
+                        <ol>
+                            <h6>https://picsum.photos/200/300</h6>
+                        </ol>
+                    </ol>
+                </div>
             </div>
+
             <button type="submit" id="submitImage" class="btn btn-primary mt-3">Submit Image</button>
         </form>
     </div>

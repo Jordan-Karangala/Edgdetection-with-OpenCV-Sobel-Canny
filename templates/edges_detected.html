@@ -45,8 +45,13 @@
                         <p class="card-text">Image: {{ image_file }}</p>
                     </div>
                 </div>
+                
             </div>
             {% endfor %}
+            <div class="d-flex mt-3">
+                        <a href="{{ url_for('enter_image_url') }}" class="btn btn-secondary me-2">Go Back</a>
+                        <a href="{{ url_for('home') }}" class="btn btn-primary">Home</a>
+            </div>
         </div>
     </div>
 

@@ -2,6 +2,8 @@
 # import matplotlib.pyplot as plt
 # import requests
 import os
+import shutil
+
 from flask import Flask, render_template, request, redirect, url_for, flash, Response
 from flask_wtf import FlaskForm
 from wtforms import SubmitField, BooleanField, SelectField, FileField
@@ -87,8 +89,8 @@ def upload():
         clear_directory('static/uploaded')
         # Save the file to the configured upload folder
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-
         flash('File uploaded successfully!')
+        edge_detection(file)
         return redirect(url_for('edge_detected_image'))
 
     return render_template('upload.html', form = form)
@@ -96,24 +98,19 @@ def upload():
 @app.route('/edge_detected_image', methods=['GET', 'POST'])
 def edge_detected_image():
 
-    # clear_directory('processed_videos')
-    file_name = os.listdir('static/uploaded')
-    file_path = os.path.join('static/uploaded', file_name[0])
-    clear_directory('static/processed')
-    edge_detection(file_path)
-    # Folder where the processed images are saved
+    clear_directory('processed_videos')
     folder_path = 'static/processed/'
-
     # List all image files in the folder
     images = os.listdir(folder_path)
 
     return render_template('edges_detected.html', images=images)
 
-def edge_detection(filepath):
-    img = cv2.imread(filepath)
+def edge_detection(file):
+    # img = cv2.imread(filepath)
+    cv2.imwrite('static/processed/Original.jpg', file)
 
     # Convert to graycsale
-    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img_gray = cv2.cvtColor(file, cv2.COLOR_BGR2GRAY)
     cv2.imwrite('static/processed/gray_image.jpg', img_gray)
 
     # Blur the image for better edge detection

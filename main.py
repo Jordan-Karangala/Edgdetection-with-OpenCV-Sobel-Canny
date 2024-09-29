@@ -1,37 +1,43 @@
-# import cv2
-# import matplotlib.pyplot as plt
-# import requests
+from PIL import Image
+from io import BytesIO
+import requests
 import os
 import shutil
-
-from flask import Flask, render_template, request, redirect, url_for, flash, Response
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_wtf import FlaskForm
-from wtforms import SubmitField, BooleanField, SelectField, FileField
+from wtforms import BooleanField, SelectField, URLField
+from wtforms.validators import DataRequired, URL
 from flask_wtf.file import FileField, FileRequired
 from werkzeug.utils import secure_filename
 from flask_bootstrap import Bootstrap5
 import cv2
 
-
-
+# Initializing Flask application
 app = Flask(__name__, template_folder='templates')
 app.config['SECRET_KEY'] = 'Stinauma@80'
 app.config['UPLOAD_FOLDER'] = 'static/uploaded'
-
+# Converting Flask application to bootstrap-flask app
 bootstrap = Bootstrap5(app)
+
+
+# Welcome Form creation
 class WelcomeForm(FlaskForm):
+    # Option to the user to upload image from local machine or get image from an url
     image_url = BooleanField('Enter image URL')
-    web_cam = BooleanField('Live Stream')
-    you_tube = BooleanField('You_tube_url')
     upload = BooleanField('Upload')
-    external_cam = BooleanField("Ext_Camera")
-    # submit = SubmitField('Submit')
 
 
+# Photo/Image upload form
 class PhotoForm(FlaskForm):
     photo = FileField(validators=[FileRequired()])
     # submit = SubmitField('Submit')
 
+# URL enter form
+class URLInputForm(FlaskForm):
+    url = URLField('Enter URL', validators=[DataRequired(), URL(message='Invalid URL')])
+
+
+#Home route
 @app.route('/', methods=['GET','POST'])
 def home():
 
@@ -42,37 +48,45 @@ def home():
 
             if request.form.get(field) == 'y':
                 selected_items.append(field)
-
                 print(selected_items)
                 if 'image_url' in selected_items:
-                    source = 'downloaded_videos/downloaded_video.mp4'
-                    # camera_choices.append(source)
-                    return redirect(url_for('you_tube_url'))
-                elif 'web_cam' in selected_items:
-                    source = 0
-                    # camera_choices.append(source)
-                    return redirect(url_for('web_cam_track'))
-                elif 'external_cam' in selected_items:
-                    # Check for additional connected cameras
-                    for i in range(1, 5):  # Check first 5 camera indices (expand range if needed)
-                        cap = cv2.VideoCapture(i)
-                        # if cap.isOpened():
-                            # camera_choices.append((str(i), f'External Camera {i}'))
-                        cap.release()
-                    # camera_choices.append(source)
-                    return redirect(url_for('select_camera'))
-                # if 'test_data' in selected_items:
-                #     car_models_df = pd.read_csv('data files/Car+names+and+make.csv')
-                #     car_models_list = car_models_df['AM General Hummer SUV 2000'].to_list()
-                #     return redirect(url_for('select_pics'))
-                elif 'desktop' in selected_items:
-
-                    return redirect(url_for('upload'))
+                    return redirect(url_for('enter_image_url'))
                 elif 'upload' in selected_items:
                     return redirect(url_for('upload'))
 
     return render_template('index.html', form=form)
 
+
+@app.route('/enter_image_url', methods=['GET','POST'])
+def enter_image_url():
+    form = URLInputForm()
+    if form.validate_on_submit():
+        # Retrieve the file
+        url = form.url.data
+        try:
+            # Fetch the image from the URL
+            response = requests.get(url)
+            response.raise_for_status()  # Check if the request was successful
+            # Validate if the response contains an image
+            if "image" not in response.headers["Content-Type"]:
+                flash("The URL does not point to an image.", "danger")
+                return redirect(url_for('enter_image_url'))
+            # Open the image using PIL
+            img = Image.open(BytesIO(response.content))
+
+            # Save the image to the upload folder
+            image_name = os.path.join('static/uploaded', 'downloaded_image.jpg')
+            clear_directory('static/uploaded')
+            img.save(image_name)
+
+            flash(f'Image successfully downloaded and saved: {image_name}', 'success')
+            edge_detection(image_name)
+            return redirect(url_for('edge_detected_image'))
+
+        except requests.exceptions.RequestException as e:
+            flash(f'Error fetching image from URL: {str(e)}', 'danger')
+
+    return render_template('image_url.html', form=form)
 
 
 @app.route('/upload', methods=['GET', 'POST'])
@@ -90,7 +104,10 @@ def upload():
         # Save the file to the configured upload folder
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         flash('File uploaded successfully!')
-        edge_detection(file)
+        file_list = os.listdir('static/uploaded')
+        file_name = file_list[0]
+        file_path = 'static/uploaded/'+file_name
+        edge_detection(file_path)
         return redirect(url_for('edge_detected_image'))
 
     return render_template('upload.html', form = form)
@@ -98,19 +115,19 @@ def upload():
 @app.route('/edge_detected_image', methods=['GET', 'POST'])
 def edge_detected_image():
 
-    clear_directory('processed_videos')
+    # clear_directory('processed_videos')
     folder_path = 'static/processed/'
     # List all image files in the folder
     images = os.listdir(folder_path)
 
     return render_template('edges_detected.html', images=images)
 
-def edge_detection(file):
-    # img = cv2.imread(filepath)
-    cv2.imwrite('static/processed/Original.jpg', file)
+def edge_detection(file_path):
+    img = cv2.imread(file_path)
+    cv2.imwrite('static/processed/Original.jpg', img)
 
     # Convert to graycsale
-    img_gray = cv2.cvtColor(file, cv2.COLOR_BGR2GRAY)
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     cv2.imwrite('static/processed/gray_image.jpg', img_gray)
 
     # Blur the image for better edge detection

@@ -84,6 +84,7 @@ def upload():
         # Secure the filename
         filename = secure_filename(file.filename)
         print(filename)
+        clear_directory('static/uploaded')
         # Save the file to the configured upload folder
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
@@ -98,7 +99,7 @@ def edge_detected_image():
     # clear_directory('processed_videos')
     file_name = os.listdir('static/uploaded')
     file_path = os.path.join('static/uploaded', file_name[0])
-    print(file_path)
+    clear_directory('static/processed')
     edge_detection(file_path)
     # Folder where the processed images are saved
     folder_path = 'static/processed/'
@@ -129,6 +130,19 @@ def edge_detection(filepath):
     canny_edge = cv2.Canny(image=img_blur, threshold1=100, threshold2=200)  # Canny Edge Detection
     cv2.imwrite('static/processed/canny_edge_image.jpg', canny_edge)
     return
+
+def clear_directory(directory_path):
+    if os.path.exists(directory_path):
+        for filename in os.listdir(directory_path):
+            file_path = os.path.join(directory_path, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print(f'Failed to delete {file_path}. Reason: {e}')
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
